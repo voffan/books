@@ -51,6 +51,7 @@ class AddBookRestView(APIView):
     def post(self, request, format=None):
         result = {'result': False, 'message': ''}
         if request.method == 'POST':
+            print(request.data)
             ser = BookSerializer(data=request.data)
             if ser.is_valid():
                 ser.save()

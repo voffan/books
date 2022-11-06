@@ -3,8 +3,12 @@
 {% block body %}
 {% include 'book_detail.html' %}
 <h1 class="text-center">Список книг в базе</h1>
+{% if not book_list %}
+<div class="alert alert-info" role="alert">
+    Ни одной книги не найдено!
+</div>
+{% endif %}
 <div class="container">
-    {% if book_list %}
     <div class="row g-3 row-cols-4" id="books">
         {% for book in book_list %}
         <div class="col">
@@ -19,11 +23,6 @@
         </div>
         {% endfor %}
     </div>
-    {% else %}
-    <div class="alert alert-info" role="alert">
-        Ни одной книги не найдено!
-    </div>
-    {% endif %}
     <div class="row g-3 justify-content-end">
         <div class="col-2">
             <button id="add" type="button" class="btn btn-primary">Добавить книгу</button>
@@ -187,6 +186,7 @@ const addNewCard = (data) => {
     div_col.appendChild(card);
     cards.appendChild(div_col);
     card.addEventListener('click', (event) => { getBookDetail(event); });
+    return card;
 }
 
 var save_btn = document.getElementById("save");
@@ -194,7 +194,9 @@ save_btn.addEventListener('click',(event) => {
     fetch(book_form.action, {
         method: "POST",
         headers: {
+            'Accept': 'application/json',
             'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector("[name=csrfmiddlewaretoken]").value,
         },
         body: JSON.stringify(formDataToJSON(new FormData(book_form))),
     })
@@ -203,7 +205,14 @@ save_btn.addEventListener('click',(event) => {
         if(data['result']==true){
             var card = document.getElementById(data['book']['id']);
             if(card!=null) updateCard(card, data['book']);
-            else addNewCard(data['book']);
+            else{
+                card = addNewCard(data['book']);
+                book_cards = document.querySelectorAll('a[name="details"]');
+            }
+            if(book_cards.length < 1){
+                var panel = document.querySelector("div[role=alert]");
+                panel.parentNode.removeChild(panel);
+            }
             details.hide();
         }
         else alert(error);
@@ -219,7 +228,9 @@ del_btn.addEventListener('click', (event)=>{
     fetch(book_form.action, {
         method: "DELETE",
         headers: {
+            'Accept': 'application/json',
             'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector("[name=csrfmiddlewaretoken]").value,
         },
     })
     .then((response) => response.json() )
@@ -229,6 +240,7 @@ del_btn.addEventListener('click', (event)=>{
             var to_delete = document.getElementById(data['book']);
             if(to_delete.parentNode.parentNode) to_delete.parentNode.parentNode.removeChild(to_delete.parentNode);
             else document.removeChild(to_delete.parentNode);
+            book_cards = document.querySelectorAll('a[name="details"]');
             details.hide();
         } else {
             alert(error);
