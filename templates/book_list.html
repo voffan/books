@@ -1,0 +1,258 @@
+{% extends 'base.html' %}
+{% block title %}Список книг{% endblock %}
+{% block body %}
+{% include 'book_detail.html' %}
+<h1 class="text-center">Список книг в базе</h1>
+<div class="container">
+    {% if book_list %}
+    <div class="row g-3 row-cols-4" id="books">
+        {% for book in book_list %}
+        <div class="col">
+            <div class="card" id="{{book.id}}">
+                <h5 class="card-header">{{ book.name }}</h5>
+                <div class="card-body">
+                    <h6 class="card-title">{% for author in book.authors.all %}{{ author.full_name }} {% endfor %}</h6>
+                    <p class="card-text">{{ book.short_description }}</p>
+                    <a href="{% url 'api:bookdetail' book.id %}" class="btn btn-primary stretched-link" name="details" id="url_{{book.id}}">Детально</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info" role="alert">
+        Ни одной книги не найдено!
+    </div>
+    {% endif %}
+    <div class="row g-3 justify-content-end">
+        <div class="col-2">
+            <button id="add" type="button" class="btn btn-primary">Добавить книгу</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+var book_cards = document.querySelectorAll('a[name="details"]');
+var details = new bootstrap.Modal(document.getElementById('BookDetail'));
+var book_form = document.getElementById("book_form");
+
+window.addEventListener('load', (even) => {
+    fetch("{% url 'api:authorlist' %}")
+    .then((response) => response.json())
+    .then((data)=>{
+        var author_list = document.getElementById("authors");
+        data.forEach(item => {
+            var option = document.createElement('option');
+            option.value = item['id'];
+            option.innerHTML = item['full_name'];
+            author_list.appendChild(option);
+        });
+    })
+    .catch((error) => {
+        alert(error);
+    });
+});
+
+const updateFormField = (id, value) => {
+    var field = document.getElementById(id);
+    field.value = value;
+}
+
+const updateForm = (data) => {
+    updateFormField("id", data['id']);
+    updateFormField("name", data['name']);
+    updateFormField("description", data['description']);
+    updateFormField("date", data['date']);
+    var authors = document.getElementById("authors");
+    authors.value=[];
+    data['authors'].forEach(author => {
+        authors.querySelectorAll("option[value='" + author + "']")[0].selected = true;
+    });
+}
+
+const getBookDetail = (event) => {
+    event.preventDefault();
+    fetch(event.target.href)
+    .then((response) => response.json())
+    .then((data) => {
+        book_form.action = event.target.href;
+        updateForm(data);
+        details.show();
+    })
+    .catch((error) => {
+        alert(error);
+    });
+}
+
+book_cards.forEach(card => {
+    card.addEventListener('click', (event)=>{ getBookDetail(event); });
+});
+
+const formDataToJSON = (formData) => {
+    b={};
+    formData.forEach((value, key)=>{
+        if(key.toString() != 'authors'){
+            b[key]=value;
+        } else if(key in b){
+            b[key].push(value);
+        } else b[key] = [value];
+    });
+    return b;
+}
+
+const getAuthorsNames = (id_list) => {
+    var authors_list = "";
+    id_list.forEach((id)=>{
+        authors_list += book_form.querySelector('option[value="' + id.toString() + '"]').text + " ";
+    });
+    return authors_list;
+}
+
+const updateCardField = (card, selector, value) => {
+    var field = card.querySelector(selector);
+    field.innerHTML = value;
+}
+
+const updateCard = (card, data) => {
+    updateCardField(card, "h5[class='card-header']", data['name']);
+    updateCardField(card, "p[class='card-text']",  data['description'].split(' ').splice(0,10).join(' ')+'...');
+    updateCardField(card, "h6[class='card-title']", getAuthorsNames(data['authors']));
+}
+
+const createCard = (data) => {
+    let card = document.createElement('div');
+    card.classList.add('card');
+    card.setAttribute("id", data['id']);
+    return card;
+}
+
+const createHeader = (data) => {
+    let card_header = document.createElement('h5');
+    card_header.classList.add("card-header");
+    card_header.textContent = data['name'];
+    return card_header;
+}
+
+const createCardBody = (data) => {
+    let card_body = document.createElement('div');
+    card_body.classList.add('card-body');
+    return card_body;
+}
+
+const createTitle = (data) => {
+    var card_title = document.createElement('h6');
+    card_title.classList.add("card-title");
+    var authors = getAuthorsNames(data['authors']);
+    card_title.textContent = authors;
+    return card_title;
+}
+
+const createText = (data) => {
+    var card_text = document.createElement('p');
+    card_text.classList.add('card-text');
+    card_text.textContent = data['description'].split(' ').splice(0,10).join(' ')+'...';
+    return card_text;
+}
+
+const createBtn = (data) => {
+    var card_btn = document.createElement('a');
+    card_btn.classList.add('btn','btn-primary', 'stretched-link');
+    card_btn.setAttribute('href', data['url']);
+    card_btn.setAttribute('name', 'details');
+    card_btn.setAttribute('id', 'url_' + data['id'].toString());
+    card_btn.textContent = 'Детально';
+    return card_btn;
+}
+
+const createNewCard = (data) => {
+    var card = createCard(data);
+    var card_header = createHeader(data);
+    var card_body = createCardBody(data);
+    var card_title = createTitle(data);
+    var card_text = createText(data);
+    var card_btn = createBtn(data);
+    card_body.appendChild(card_title);
+    card_body.appendChild(card_text);
+    card_body.appendChild(card_btn);
+    card.appendChild(card_header);
+    card.appendChild(card_body);
+    return card;
+}
+
+const addNewCard = (data) => {
+    var cards = document.getElementById("books");
+    var card = createNewCard(data);
+    var div_col = document.createElement('div');
+    div_col.classList.add("col");
+    div_col.appendChild(card);
+    cards.appendChild(div_col);
+    card.addEventListener('click', (event) => { getBookDetail(event); });
+}
+
+var save_btn = document.getElementById("save");
+save_btn.addEventListener('click',(event) => {
+    fetch(book_form.action, {
+        method: "POST",
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formDataToJSON(new FormData(book_form))),
+    })
+    .then((response) => response.json() )
+    .then((data) => {
+        if(data['result']==true){
+            var card = document.getElementById(data['book']['id']);
+            if(card!=null) updateCard(card, data['book']);
+            else addNewCard(data['book']);
+            details.hide();
+        }
+        else alert(error);
+    })
+    .catch((error) => {
+        alert(error);
+    });
+});
+
+var del_btn = document.getElementById("delete");
+del_btn.addEventListener('click', (event)=>{
+    if(!confirm('Удалить книгу?')) return;
+    fetch(book_form.action, {
+        method: "DELETE",
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    })
+    .then((response) => response.json() )
+    .then((data) => {
+        if(data['result']==true){
+            //delete card
+            var to_delete = document.getElementById(data['book']);
+            if(to_delete.parentNode.parentNode) to_delete.parentNode.parentNode.removeChild(to_delete.parentNode);
+            else document.removeChild(to_delete.parentNode);
+            details.hide();
+        } else {
+            alert(error);
+        }
+    })
+    .catch((error) => {
+        alert(error);
+    });
+});
+
+const clearForm = () => {
+    var data = {};
+    data['id'] = "-1";
+    data['name'] = "";
+    data['description'] = "";
+    data['date'] = moment().format('YYYY-MM-DD');
+    data['authors'] = [];
+    updateForm(data);
+}
+
+const add_btn = document.getElementById("add");
+add_btn.addEventListener('click', (event) => {
+    clearForm();
+    book_form.action = "{% url 'api:addbook' %}"
+    details.show();
+});
+{% endblock %}

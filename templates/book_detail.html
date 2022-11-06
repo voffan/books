@@ -1,0 +1,32 @@
+<div class="modal fade" id="BookDetail" tabindex="-1" aria-labelledby="bookModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="bookModalLabel"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form action="" id="book_form">
+          {% csrf_token %}
+          <input type="text" id="id" name="id" value="-1" hidden/>
+          <label for="name">Название</label>
+          <input type="text" class="form-control" id="name" name="name" value="1"/>
+          <!--authors-->
+          <label for="authors">Авторы</label>
+          <select class="form-control" id="authors" name="authors" size="2" multiple="multiple">
+
+          </select>
+          <label for="description">Описание</label>
+          <textarea class="form-control" id="description" name="description" rows="4"></textarea>
+          <label for="date">Дата добавления</label>
+          <input type="date" class="form-control" id="date" name="date" value="" readonly/>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+        <button id="delete" type="button" class="btn btn-primary">Удалить</button>
+        <button id="save" type="button" class="btn btn-primary">Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
