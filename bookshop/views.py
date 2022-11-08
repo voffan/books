@@ -71,3 +71,6 @@ class AuthorListRestView(ModelViewSet):
 class BookListView(ListView):
     model = Book
     template_name = 'book_list.html'
+
+    def get_queryset(self):
+        return Book.objects.filter(name__icontains=self.request.GET['book_name']) if 'book_name' in self.request.GET else Book.objects.all()
